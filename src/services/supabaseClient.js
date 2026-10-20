@@ -18,6 +18,8 @@ export const getSupabaseConfig = () => {
     }
   }
 
+  const supabaseKey = (customKey && customKey.trim()) || (envKey && envKey.trim()) || '';
+
   const isConfigured = Boolean(
     cleanUrl && 
     supabaseKey && 
