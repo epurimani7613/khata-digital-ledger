@@ -238,8 +238,8 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
         {/* TAB 1: PIN & FINGERPRINT */}
         {activeTab === 'PIN' && (
           <div className="flex flex-col items-center">
-            {/* Biometric Touch ID / Fingerprint Button (only shown if PIN is already set) */}
-            {isPinSet && isBiometricSupported && (
+            {/* Biometric Touch ID / Fingerprint Button (Single Owner Locked) */}
+            {isBiometricSupported && (
               <div className="mb-6 flex flex-col items-center">
                 <button
                   type="button"
@@ -248,7 +248,9 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
                   className={`w-20 h-20 rounded-full border-2 flex items-center justify-center relative transition-all active:scale-90 ${
                     isScanning
                       ? 'border-emerald-400 bg-emerald-950/80 shadow-[0_0_30px_rgba(16,185,129,0.5)]'
-                      : 'border-slate-700 hover:border-emerald-500 bg-slate-900/90 hover:bg-emerald-950/30 shadow-lg'
+                      : isBiometricRegistered
+                      ? 'border-emerald-500/80 bg-slate-900/90 hover:bg-emerald-950/30 shadow-lg shadow-emerald-500/10'
+                      : 'border-slate-700 hover:border-emerald-500 bg-slate-900/90'
                   }`}
                 >
                   <Fingerprint
@@ -260,13 +262,15 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
                 </button>
                 <span className="text-xs font-semibold text-slate-300 mt-2.5">
                   {isScanning
-                    ? 'Scanning Fingerprint / Touch ID...'
+                    ? 'Verifying Owner Fingerprint...'
                     : isBiometricRegistered
-                    ? 'Tap to Unlock with Fingerprint'
-                    : 'Tap to Enroll Touch ID / Fingerprint'}
+                    ? 'Unlock with Owner Fingerprint'
+                    : 'Enroll Owner Fingerprint (1 User Only)'}
                 </span>
                 <span className="text-[10px] text-slate-500">
-                  Touch your fingerprint sensor or Mac Touch ID
+                  {isBiometricRegistered
+                    ? 'Secured for Sole Owner'
+                    : 'Only one user fingerprint permitted'}
                 </span>
               </div>
             )}

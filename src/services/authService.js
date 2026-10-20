@@ -49,10 +49,15 @@ export const authService = {
     return Boolean(localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY));
   },
 
-  // Enroll biometric (Touch ID / Fingerprint sensor)
-  async registerBiometric(username = 'KhataBook Owner') {
+  // Enroll biometric (Touch ID / Fingerprint sensor) - RESTRICTED TO ONLY ONE OWNER
+  async registerBiometric(username = 'KhataBook Master Owner') {
     if (!window.PublicKeyCredential) {
       throw new Error('Biometric authentication is not supported on this browser.');
+    }
+
+    // STRICT: Only one user is allowed to enroll a fingerprint
+    if (this.hasBiometricEnrolled()) {
+      throw new Error('Only 1 user fingerprint is allowed. Additional users cannot register.');
     }
 
     const challenge = new Uint8Array(32);
@@ -70,7 +75,7 @@ export const authService = {
       user: {
         id: userId,
         name: username,
-        displayName: username,
+        displayName: 'Sole Master Owner',
       },
       pubKeyCredParams: [
         { alg: -7, type: 'public-key' },  // ES256
@@ -78,7 +83,7 @@ export const authService = {
       ],
       authenticatorSelection: {
         authenticatorAttachment: 'platform', // Uses Touch ID / device fingerprint
-        userVerification: 'preferred',
+        userVerification: 'required',
         requireResidentKey: false,
       },
       timeout: 60000,
@@ -95,35 +100,37 @@ export const authService = {
 
     const credIdBase64 = bufferToBase64(credential.rawId);
     localStorage.setItem(BIOMETRIC_CREDENTIAL_ID_KEY, credIdBase64);
+    localStorage.setItem('khata_owner_fingerprint_locked', 'true');
     return true;
   },
 
-  // Authenticate with Fingerprint / Touch ID
+  // Authenticate with Fingerprint / Touch ID (Sole Owner only)
   async authenticateBiometric() {
     if (!window.PublicKeyCredential) {
       throw new Error('Biometrics not supported on this browser.');
     }
 
     const credIdBase64 = localStorage.getItem(BIOMETRIC_CREDENTIAL_ID_KEY);
+    if (!credIdBase64) {
+      throw new Error('No owner fingerprint is enrolled yet.');
+    }
+
     const challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
 
     const publicKeyCredentialRequestOptions = {
       challenge,
       timeout: 60000,
-      userVerification: 'preferred',
+      userVerification: 'required',
       rpId: window.location.hostname,
-    };
-
-    if (credIdBase64) {
-      publicKeyCredentialRequestOptions.allowCredentials = [
+      allowCredentials: [
         {
           id: base64ToBuffer(credIdBase64),
           type: 'public-key',
           transports: ['internal'],
         },
-      ];
-    }
+      ],
+    };
 
     const assertion = await navigator.credentials.get({
       publicKey: publicKeyCredentialRequestOptions,
@@ -137,9 +144,13 @@ export const authService = {
     return true;
   },
 
-  // Security PIN methods
+  // Security PIN methods - Master PIN is permanently set to 0430
+  getMasterPin() {
+    return '0430';
+  },
+
   isPinConfigured() {
-    return Boolean(localStorage.getItem(LOCAL_PIN_KEY));
+    return true; // 0430 is pre-configured as the master PIN
   },
 
   setPin(pin) {
@@ -152,10 +163,7 @@ export const authService = {
   },
 
   verifyPin(inputPin) {
-    const savedPin = localStorage.getItem(LOCAL_PIN_KEY);
-    if (!savedPin) {
-      return false;
-    }
+    const savedPin = localStorage.getItem(LOCAL_PIN_KEY) || this.getMasterPin();
     if (savedPin === inputPin) {
       this.setUnlocked(true);
       return true;
@@ -164,7 +172,7 @@ export const authService = {
   },
 
   clearPin() {
-    localStorage.removeItem(LOCAL_PIN_KEY);
+    localStorage.setItem(LOCAL_PIN_KEY, this.getMasterPin());
   },
 
   // Lock / Unlock session management
