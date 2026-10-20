@@ -6,11 +6,10 @@ import {
   Mail, 
   ArrowRight, 
   ShieldCheck, 
-  Sparkles, 
   AlertCircle,
   Delete,
   CheckCircle2,
-  Settings2
+  LockKeyhole
 } from 'lucide-react';
 import { authService } from '../services/authService';
 
@@ -23,6 +22,11 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
   const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [shake, setShake] = useState(false);
+
+  // Custom PIN Setup State (No default PIN!)
+  const [isPinSet, setIsPinSet] = useState(authService.isPinConfigured());
+  const [pinSetupStep, setPinSetupStep] = useState(1); // 1 = Enter, 2 = Confirm
+  const [firstEnteredPin, setFirstEnteredPin] = useState('');
 
   // Supabase Auth State
   const [authMode, setAuthMode] = useState('LOGIN'); // 'LOGIN' | 'SIGNUP'
@@ -40,6 +44,13 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
     checkBio();
   }, []);
 
+  const triggerShake = (msg) => {
+    setErrorMsg(msg);
+    setShake(true);
+    setPin('');
+    setTimeout(() => setShake(false), 500);
+  };
+
   // Handle PIN input
   const handlePinPress = (digit) => {
     setErrorMsg('');
@@ -56,26 +67,45 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
     const nextPin = pin + digit;
     setPin(nextPin);
 
-    // Auto verify when 4 digits reached
+    // Auto action when 4 digits reached
     if (nextPin.length === 4) {
-      setTimeout(() => verifyEnteredPin(nextPin), 150);
+      if (!isPinSet) {
+        // Initial PIN Creation Flow
+        if (pinSetupStep === 1) {
+          setTimeout(() => {
+            setFirstEnteredPin(nextPin);
+            setPin('');
+            setPinSetupStep(2);
+          }, 150);
+        } else {
+          // Confirm step
+          setTimeout(() => {
+            if (nextPin === firstEnteredPin) {
+              authService.setPin(nextPin);
+              setIsPinSet(true);
+              setSuccessMsg('Security PIN created successfully!');
+              setTimeout(() => onUnlock(), 400);
+            } else {
+              triggerShake('PINs did not match. Please re-enter.');
+              setPinSetupStep(1);
+              setFirstEnteredPin('');
+            }
+          }, 150);
+        }
+      } else {
+        // Normal Unlock Flow
+        setTimeout(() => verifyEnteredPin(nextPin), 150);
+      }
     }
-  };
-
-  const triggerShake = (msg) => {
-    setErrorMsg(msg);
-    setShake(true);
-    setPin('');
-    setTimeout(() => setShake(false), 500);
   };
 
   const verifyEnteredPin = (enteredPin) => {
     const isValid = authService.verifyPin(enteredPin);
     if (isValid) {
       setSuccessMsg('Unlocked successfully!');
-      setTimeout(() => onUnlock(), 300);
+      setTimeout(() => onUnlock(), 250);
     } else {
-      triggerShake('Incorrect PIN. Try default: 1234');
+      triggerShake('Incorrect PIN. Please try again.');
     }
   };
 
@@ -148,46 +178,48 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
 
         <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-900 border border-slate-800 text-slate-300">
           <Lock className="w-3 h-3 text-emerald-400" />
-          <span>Secured</span>
+          <span>{isPinSet ? 'Secured' : 'Setup Required'}</span>
         </div>
       </div>
 
       {/* Main Lock Card */}
       <div className={`w-full max-w-sm my-auto pt-4 pb-2 transition-transform ${shake ? 'animate-bounce' : ''}`}>
         {/* Toggle Mode Tabs */}
-        <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 mb-6">
-          <button
-            onClick={() => {
-              setActiveTab('PIN');
-              setErrorMsg('');
-            }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-              activeTab === 'PIN'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Quick PIN & Fingerprint</span>
-          </button>
-
-          {isCloud && (
+        {isPinSet && (
+          <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 mb-6">
             <button
               onClick={() => {
-                setActiveTab('SUPABASE');
+                setActiveTab('PIN');
                 setErrorMsg('');
               }}
               className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                activeTab === 'SUPABASE'
+                activeTab === 'PIN'
                   ? 'bg-slate-800 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Mail className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Supabase Login</span>
+              <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+              <span>PIN & Fingerprint</span>
             </button>
-          )}
-        </div>
+
+            {isCloud && (
+              <button
+                onClick={() => {
+                  setActiveTab('SUPABASE');
+                  setErrorMsg('');
+                }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  activeTab === 'SUPABASE'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Supabase Login</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Status Messages */}
         {errorMsg && (
@@ -206,8 +238,8 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
         {/* TAB 1: PIN & FINGERPRINT */}
         {activeTab === 'PIN' && (
           <div className="flex flex-col items-center">
-            {/* Biometric Touch ID / Fingerprint Button */}
-            {isBiometricSupported && (
+            {/* Biometric Touch ID / Fingerprint Button (only shown if PIN is already set) */}
+            {isPinSet && isBiometricSupported && (
               <div className="mb-6 flex flex-col items-center">
                 <button
                   type="button"
@@ -224,15 +256,14 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
                       isScanning ? 'text-emerald-300 scale-110 animate-pulse' : 'text-emerald-400'
                     }`}
                   />
-                  {/* Subtle pulsing ring */}
                   <span className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping pointer-events-none"></span>
                 </button>
                 <span className="text-xs font-semibold text-slate-300 mt-2.5">
                   {isScanning
-                    ? 'Scanning Touch ID / Fingerprint...'
+                    ? 'Scanning Fingerprint / Touch ID...'
                     : isBiometricRegistered
                     ? 'Tap to Unlock with Fingerprint'
-                    : 'Tap to Setup Fingerprint / Touch ID'}
+                    : 'Tap to Enroll Touch ID / Fingerprint'}
                 </span>
                 <span className="text-[10px] text-slate-500">
                   Touch your fingerprint sensor or Mac Touch ID
@@ -240,8 +271,23 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
               </div>
             )}
 
+            {/* If Setting PIN for the first time */}
+            {!isPinSet && (
+              <div className="mb-4 text-center">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-950/80 border border-emerald-600/40 text-emerald-400 flex items-center justify-center mb-2 shadow-lg">
+                  <LockKeyhole className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-white">Create Security PIN</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {pinSetupStep === 1
+                    ? 'Choose your custom 4-digit security PIN'
+                    : 'Confirm your 4-digit PIN'}
+                </p>
+              </div>
+            )}
+
             {/* PIN Indicator Dots */}
-            <div className="flex items-center space-x-4 mb-5">
+            <div className="flex items-center space-x-4 mb-4">
               {[0, 1, 2, 3].map((idx) => {
                 const filled = pin.length > idx;
                 return (
@@ -257,9 +303,11 @@ export const AuthScreen = ({ onUnlock, isCloud }) => {
               })}
             </div>
 
-            <div className="text-[11px] text-slate-400 mb-3 text-center">
-              Enter 4-digit security PIN <span className="text-emerald-400 font-semibold">(Default: 1234)</span>
-            </div>
+            {isPinSet && (
+              <div className="text-[11px] text-slate-400 mb-3 text-center">
+                Enter your 4-digit security PIN to unlock
+              </div>
+            )}
 
             {/* Quick PIN Keypad Grid */}
             <div className="w-full grid grid-cols-3 gap-2.5">

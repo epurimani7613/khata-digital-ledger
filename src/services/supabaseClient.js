@@ -1,6 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Retrieve credentials from environment or runtime localStorage config
+// Default project credentials baked in for zero-config multi-device sync
+const DEFAULT_SUPABASE_URL = 'https://mnvhqghjvhxdfferjanm.supabase.co';
+// Default key placeholder or runtime key
+const DEFAULT_SUPABASE_KEY = '';
+
+// Retrieve credentials from environment, localStorage, or built-in defaults
 export const getSupabaseConfig = () => {
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -8,7 +13,7 @@ export const getSupabaseConfig = () => {
   const customUrl = localStorage.getItem('khata_supabase_url');
   const customKey = localStorage.getItem('khata_supabase_key');
 
-  let cleanUrl = (customUrl && customUrl.trim()) || (envUrl && envUrl.trim()) || '';
+  let cleanUrl = (customUrl && customUrl.trim()) || (envUrl && envUrl.trim()) || DEFAULT_SUPABASE_URL;
   if (cleanUrl) {
     try {
       const parsed = new URL(cleanUrl);
@@ -18,7 +23,7 @@ export const getSupabaseConfig = () => {
     }
   }
 
-  const supabaseKey = (customKey && customKey.trim()) || (envKey && envKey.trim()) || '';
+  const supabaseKey = (customKey && customKey.trim()) || (envKey && envKey.trim()) || DEFAULT_SUPABASE_KEY;
 
   const isConfigured = Boolean(
     cleanUrl && 

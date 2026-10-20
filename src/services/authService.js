@@ -153,13 +153,7 @@ export const authService = {
 
   verifyPin(inputPin) {
     const savedPin = localStorage.getItem(LOCAL_PIN_KEY);
-    // Default fallback pin for first time demo if none set is 1234
     if (!savedPin) {
-      if (inputPin === '1234') {
-        localStorage.setItem(LOCAL_PIN_KEY, '1234');
-        this.setUnlocked(true);
-        return true;
-      }
       return false;
     }
     if (savedPin === inputPin) {
