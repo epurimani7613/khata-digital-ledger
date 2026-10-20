@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Default project credentials baked in for zero-config multi-device sync
+// These auto-fill so the app works on any device without manual setup
 const DEFAULT_SUPABASE_URL = 'https://mnvhqghjvhxdfferjanm.supabase.co';
-// Default key placeholder or runtime key
-const DEFAULT_SUPABASE_KEY = '';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_6x100XH8z2QvwAxYu2Az9w_Lt7l9s0e';
 
 // Retrieve credentials from environment, localStorage, or built-in defaults
 export const getSupabaseConfig = () => {

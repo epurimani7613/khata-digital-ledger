@@ -31,10 +31,10 @@ export const SettingsModal = ({
 }) => {
   const currentConfig = getSupabaseConfig();
   const [supabaseUrl, setSupabaseUrl] = useState(
-    localStorage.getItem('khata_supabase_url') || import.meta.env.VITE_SUPABASE_URL || ''
+    localStorage.getItem('khata_supabase_url') || import.meta.env.VITE_SUPABASE_URL || 'https://mnvhqghjvhxdfferjanm.supabase.co'
   );
   const [supabaseKey, setSupabaseKey] = useState(
-    localStorage.getItem('khata_supabase_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+    localStorage.getItem('khata_supabase_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_6x100XH8z2QvwAxYu2Az9w_Lt7l9s0e'
   );
   const [testResult, setTestResult] = useState(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -258,7 +258,7 @@ export const SettingsModal = ({
           {/* Change PIN */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-400 mb-1">
-              Change 4-Digit Security PIN (Default: 1234)
+              Change 4-Digit Security PIN
             </label>
             <div className="flex items-center space-x-2">
               <input
