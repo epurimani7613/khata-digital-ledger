@@ -8,17 +8,24 @@ export const getSupabaseConfig = () => {
   const customUrl = localStorage.getItem('khata_supabase_url');
   const customKey = localStorage.getItem('khata_supabase_key');
 
-  const supabaseUrl = (customUrl && customUrl.trim()) || (envUrl && envUrl.trim());
-  const supabaseKey = (customKey && customKey.trim()) || (envKey && envKey.trim());
+  let cleanUrl = (customUrl && customUrl.trim()) || (envUrl && envUrl.trim()) || '';
+  if (cleanUrl) {
+    try {
+      const parsed = new URL(cleanUrl);
+      cleanUrl = parsed.origin; // Extracts https://mnvhqghjvhxdfferjanm.supabase.co
+    } catch {
+      cleanUrl = cleanUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+    }
+  }
 
   const isConfigured = Boolean(
-    supabaseUrl && 
+    cleanUrl && 
     supabaseKey && 
-    supabaseUrl.startsWith('https://') &&
-    !supabaseUrl.includes('your-supabase-project')
+    cleanUrl.startsWith('https://') &&
+    !cleanUrl.includes('your-supabase-project')
   );
 
-  return { supabaseUrl, supabaseKey, isConfigured };
+  return { supabaseUrl: cleanUrl, supabaseKey, isConfigured };
 };
 
 let clientInstance = null;
