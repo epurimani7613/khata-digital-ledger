@@ -9,7 +9,8 @@ import {
   Download, 
   Settings, 
   UserPlus,
-  Scale
+  Scale,
+  Lock
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 
@@ -25,6 +26,7 @@ export const Header = ({
   onOpenAddMember,
   onOpenSettings,
   onExport,
+  onLock,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 shadow-xl transition-all">
@@ -79,6 +81,15 @@ export const Header = ({
             className="p-1.5 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 hover:text-white hover:bg-slate-800 transition"
           >
             <Download className="w-4 h-4" />
+          </button>
+
+          {/* Lock Screen Button */}
+          <button
+            onClick={onLock}
+            title="Lock Ledger Screen"
+            className="p-1.5 rounded-lg bg-slate-900 text-slate-300 border border-slate-700 hover:text-emerald-400 hover:bg-slate-800 transition"
+          >
+            <Lock className="w-4 h-4" />
           </button>
 
           {/* Settings Button */}

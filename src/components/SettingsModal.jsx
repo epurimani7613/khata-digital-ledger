@@ -10,9 +10,14 @@ import {
   ExternalLink, 
   Database,
   FileCode2,
-  FileText
+  FileText,
+  Fingerprint,
+  Lock,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 import { getSupabaseConfig, getSupabase } from '../services/supabaseClient';
+import { authService } from '../services/authService';
 
 export const SettingsModal = ({
   isOpen,
@@ -33,6 +38,35 @@ export const SettingsModal = ({
   );
   const [testResult, setTestResult] = useState(null);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Security & Biometric states
+  const [newPin, setNewPin] = useState('');
+  const [pinFeedback, setPinFeedback] = useState('');
+  const [bioFeedback, setBioFeedback] = useState('');
+  const [isBioEnrolled, setIsBioEnrolled] = useState(authService.hasBiometricEnrolled());
+
+  const handleUpdatePin = () => {
+    if (!newPin || newPin.length < 4) {
+      setPinFeedback('PIN must be at least 4 digits');
+      return;
+    }
+    authService.setPin(newPin);
+    setPinFeedback('Security PIN updated successfully!');
+    setNewPin('');
+    setTimeout(() => setPinFeedback(''), 3000);
+  };
+
+  const handleRegisterBiometric = async () => {
+    setBioFeedback('');
+    try {
+      await authService.registerBiometric();
+      setIsBioEnrolled(true);
+      setBioFeedback('Fingerprint enrolled successfully!');
+      setTimeout(() => setBioFeedback(''), 3000);
+    } catch (err) {
+      setBioFeedback(err.message || 'Fingerprint setup failed');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -209,6 +243,67 @@ export const SettingsModal = ({
           <div className="text-[10px] text-slate-500 pt-1">
             Tip: Run <code className="text-slate-300 font-mono">supabase_schema.sql</code> in your Supabase SQL editor to create the required tables.
           </div>
+        </div>
+
+        {/* Security & Fingerprint / PIN Management */}
+        <div className="space-y-3 mb-5 p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              Security & Biometric Access
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">Touch ID / PIN</span>
+          </div>
+
+          {/* Change PIN */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+              Change 4-Digit Security PIN (Default: 1234)
+            </label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="password"
+                maxLength={6}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="Enter new 4-digit PIN"
+                className="flex-1 bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-center tracking-widest"
+              />
+              <button
+                onClick={handleUpdatePin}
+                className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition active:scale-95"
+              >
+                Set PIN
+              </button>
+            </div>
+            {pinFeedback && (
+              <span className="block text-[11px] text-emerald-400 mt-1 font-medium">{pinFeedback}</span>
+            )}
+          </div>
+
+          {/* Fingerprint / Touch ID Setup */}
+          <div className="pt-2 border-t border-slate-850 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-200 flex items-center gap-1">
+                <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
+                Device Fingerprint / Touch ID
+              </span>
+              <p className="text-[10px] text-slate-500">
+                {isBioEnrolled ? 'Registered on this device' : 'Not yet enrolled on this device'}
+              </p>
+            </div>
+
+            <button
+              onClick={handleRegisterBiometric}
+              className="py-1.5 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-1 active:scale-95 transition"
+            >
+              <Fingerprint className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{isBioEnrolled ? 'Re-enroll' : 'Enroll'}</span>
+            </button>
+          </div>
+          {bioFeedback && (
+            <span className="block text-[11px] text-emerald-400 font-medium">{bioFeedback}</span>
+          )}
         </div>
 
         {/* Backup & Export Options */}

@@ -5,7 +5,9 @@ import { LedgerDetail } from './components/LedgerDetail';
 import { Keypad } from './components/Keypad';
 import { AddMemberModal } from './components/AddMemberModal';
 import { SettingsModal } from './components/SettingsModal';
+import { AuthScreen } from './components/AuthScreen';
 import { khataService } from './services/storageService';
+import { authService } from './services/authService';
 import { 
   calculateMemberBalance, 
   calculateOverallSummary 
@@ -18,6 +20,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL'); // 'ALL' | 'GET' | 'GIVE'
   const [isLoading, setIsLoading] = useState(true);
+  const [isUnlocked, setIsUnlocked] = useState(authService.isUnlocked());
 
   // Modals
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
@@ -169,6 +172,15 @@ export function App() {
 
   const isCloud = khataService.isCloudMode();
 
+  const handleLock = () => {
+    authService.lock();
+    setIsUnlocked(false);
+  };
+
+  if (!isUnlocked) {
+    return <AuthScreen onUnlock={() => setIsUnlocked(true)} isCloud={isCloud} />;
+  }
+
   return (
     <div className="flex flex-col h-[100dvh] max-h-[100dvh] bg-slate-950 text-slate-100 overflow-hidden select-none">
       {/* 1. TOP BAR (Header, Search, Summary Banner, Filters) */}
@@ -184,6 +196,7 @@ export function App() {
         onOpenAddMember={() => setIsAddMemberOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onExport={handleExportCSV}
+        onLock={handleLock}
       />
 
       {/* 2. MIDDLE SECTION (Member Cards Carousel / Grid) */}

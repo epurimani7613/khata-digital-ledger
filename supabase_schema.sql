@@ -9,6 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 2. Create Members Table
 CREATE TABLE IF NOT EXISTS public.members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     phone TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -34,9 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_members_phone ON public.members(phone);
 ALTER TABLE public.members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
--- 6. Setup Policies for Anonymous Public Access (Default for simple Khata app / anon key)
--- Note: In multi-user authenticated production environments, change `auth.role() = 'anon'` to `auth.uid() = user_id`
-
+-- 6. Setup Policies for Access
+-- Allows public access using anon key / biometric PIN
 DROP POLICY IF EXISTS "Public access for members" ON public.members;
 CREATE POLICY "Public access for members"
     ON public.members
@@ -51,6 +51,6 @@ CREATE POLICY "Public access for transactions"
     USING (true)
     WITH CHECK (true);
 
--- 7. Realtime Replication (Optional: Enable if Supabase Realtime is used)
+-- 7. Realtime Replication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.members;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
